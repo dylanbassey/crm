@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+model Customer {
+  id String @id @default(cuid())
+  email String @unique
+  firstName String
+  lastName String
+  phone String?
+  notes String?
+  tier CustomerTier @default(STANDARD)
+  stage LifecycleStage @default(LEAD)
+  interactions Interaction[]
+  orders Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Interaction {
+  id String @id @default(cuid())
+  type InteractionType @default(NOTE)
+  summary String
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId])
+}
+
+model Product {
+  id String @id @default(cuid())
+  sku String @unique
+  name String
+  priceCents Int
+  items OrderItem[]
+}
+
+model Order {
+  id String @id @default(cuid())
+  number String @unique
+  status OrderStatus @default(DRAFT)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  items OrderItem[]
+
+  placedAt DateTime @default(now())
+  @@index([customerId])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+  quantity Int @default(1)
+  unitPriceCents Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  product Product @relation(fields: [productId], references: [id])
+  productId String
+
+  @@unique([orderId, productId])
+  @@index([productId])
+}
+
+enum CustomerTier {
+  STANDARD
+  PREMIUM
+  VIP
+}
+
+enum LifecycleStage {
+  LEAD
+  PROSPECT
+  ACTIVE
+  DORMANT
+}
+
+enum InteractionType {
+  NOTE
+  CALL
+  EMAIL
+  FITTING
+  MEETING
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
